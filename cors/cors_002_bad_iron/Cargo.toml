@@ -1,0 +1,7 @@
+[package]
+name = "cors_002_bad_iron"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+iron = "0.6.1"

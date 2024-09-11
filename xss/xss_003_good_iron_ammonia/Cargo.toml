@@ -1,0 +1,9 @@
+[package]
+name = "xss_003_good_iron_ammonia"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+iron = "0.6.1"
+urlencoded = "0.6.0"
+ammonia = "4"

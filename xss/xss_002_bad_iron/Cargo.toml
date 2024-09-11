@@ -1,0 +1,8 @@
+[package]
+name = "xss_002_bad_iron"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+iron = "0.6.1"
+urlencoded = "0.6.0"

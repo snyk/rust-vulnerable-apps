@@ -1,0 +1,5 @@
+# Virtual workspace, to satisfy IDE tools
+[workspace]
+members = ["./*/*bad*", "./*/*good*"]
+exclude = [".*"]
+resolver = "2"

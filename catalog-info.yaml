@@ -1,0 +1,8 @@
+apiVersion: backstage.io/v1alpha1
+kind: Component
+metadata:
+  name: rust-vulnerable-apps
+spec:
+  type: intentionally-vulnerable
+  lifecycle: "-"
+  owner: rules-intelligence

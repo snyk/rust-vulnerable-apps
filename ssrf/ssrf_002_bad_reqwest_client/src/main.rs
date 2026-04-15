@@ -1,30 +1,63 @@
-// ~ https://github.com/seanmonstar/reqwest/blob/88bd9be6/examples/form.rs#L10
-// Example inspired from reqwest examples, MIT Licensed
 
-// Combined with warp for taint
+ use std::convert::Infallible;
+use std::time::Duration;
+use warp::{http::StatusCode, reply::with_status, Filter};
 
-/*
-tokio = { version = "1.0", features = ["full"] }
-warp = "0.3"
-reqwest = { version = "0.12", features = ["json"] }
- */
+#[tokio::main]
+async fn main() {
+    let client = reqwest::Client::builder()
+        .timeout(Duration::from_secs(5))
+        .build()
+        .expect("failed to build client");
 
- use warp::Filter;
+    let status_route = {
+        let client = client.clone();
+        warp::get()
+            .and(warp::path("status"))
+            .and(warp::path::end())
+            .and_then(move || {
+                let client = client.clone();
+                async move { proxy_upstream(client, "/status").await }
+            })
+    };
 
+    let profile_route = {
+        let client = client.clone();
+        warp::get()
+            .and(warp::path("profile"))
+            .and(warp::path::end())
+            .and_then(move || {
+                let client = client.clone();
+                async move { proxy_upstream(client, "/profile").await }
+            })
+    };
 
- #[tokio::main]
- async fn main() {
-     let routes = warp::path::param().then(|tainted_param: String| async move {
-         let response = reqwest::Client::new()
-             .post(format!("https://{}", tainted_param)) //  Ssrf VULNERABILITY HERE
-             .form(&[("one", "1")])
-             .send()
-             .await
-             .expect("send");
- 
-         format!("{} {}", tainted_param, response.status()) //  XSS VULNERABILITY HERE
-     });
- 
-     warp::serve(routes).run(([127, 0, 0, 1], 3030)).await;
- }
- 
+    let routes = status_route.or(profile_route);
+
+    warp::serve(routes).run(([127, 0, 0, 1], 3030)).await;
+}
+
+async fn proxy_upstream(
+    client: reqwest::Client,
+    upstream_path: &'static str,
+) -> Result<impl warp::Reply, Infallible> {
+    let url = format!("https://example.com{}", upstream_path);
+
+    let reply = match client.get(&url).send().await {
+        Ok(response) => {
+            let status = StatusCode::from_u16(response.status().as_u16())
+                .unwrap_or(StatusCode::BAD_GATEWAY);
+
+            with_status(
+                format!("upstream responded with {}", response.status()),
+                status,
+            )
+        }
+        Err(_) => with_status(
+            "upstream request failed".to_string(),
+            StatusCode::BAD_GATEWAY,
+        ),
+    };
+
+    Ok(reply)
+}
